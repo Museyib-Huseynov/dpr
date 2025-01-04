@@ -138,6 +138,12 @@ try {
       report_date = processDateValue(report_date);
       //
 
+      // rename excel file to keep it clean
+      const newFileName = `DPR-${platform_number}-${report_date}.xlsx`;
+      const newFilePath = path.join(path.dirname(filePath), newFileName);
+      await fs.rename(filePath, newFilePath);
+      //
+
       // check if report is yesterday's report
       // const today = new Date().toLocaleDateString('en-CA', {
       //   timeZone: 'Asia/Baku',
