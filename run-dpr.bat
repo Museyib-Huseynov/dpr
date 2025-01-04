@@ -1,4 +1,6 @@
 @echo off
+setlocal enabledelayedexpansion
 set /p folder="Please enter the folder name: "
-node dpr.js %folder%
+set "folder=!folder:\=\\!"
+node dpr.js "!folder!"
 pause
