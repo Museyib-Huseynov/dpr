@@ -346,7 +346,7 @@ try {
         const downtime_category = row[53];
         const production_sub_skins_activity_id =
           production_sub_skins_activities.find(
-            (i) => i.name.trim() === row[56]?.trim?.()
+            (i) => i.name.slice(0, 5).trim() === row[56]?.slice(0, 5).trim()
           )?.id;
         const comments = row[57];
 
