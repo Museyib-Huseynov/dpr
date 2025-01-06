@@ -925,6 +925,14 @@ try {
       ////
     }
   }
+  ////
+} catch (err) {
+  logger.log(err, error);
+  console.log(err);
+} finally {
+  if (connection) {
+    await connection.end();
+  }
   logger_without_timestamp = true;
   logger.log(`${'='.repeat(100)}`);
   logger.log('SCRIPT EXECUTION FINISHED!');
@@ -972,15 +980,6 @@ try {
   logger.log(`${'.'.repeat(100)}`);
   logger.log(`${'*'.repeat(100)}`);
   logger_without_timestamp = false;
-
-  ////
-} catch (err) {
-  logger.log(err, error);
-  console.log(err);
-} finally {
-  if (connection) {
-    await connection.end();
-  }
 }
 
 function getFormattedFilename() {
