@@ -185,7 +185,7 @@ try {
 
       // get latest entry from flowmeter table
       const flowmeter_latest_entry_query =
-        'SELECT report_date from FLOWMETER WHERE platform_id = ? ORDER BY id DESC LIMIT 1';
+        'SELECT * from FLOWMETER WHERE platform_id = ? ORDER BY id DESC LIMIT 1';
 
       const flowmeter_latest_entry_query_data = [platform_id];
 
@@ -194,8 +194,13 @@ try {
         flowmeter_latest_entry_query_data
       );
 
-      const { report_date: flowmeter_latest_report_date } =
-        flowmeter_latest_entry[0] || {};
+      const {
+        report_date: flowmeter_latest_report_date,
+        reading1: flowmeter_latest_reading1,
+        reading2: flowmeter_latest_reading2,
+        reading3: flowmeter_latest_reading3,
+        reading4: flowmeter_latest_reading4,
+      } = flowmeter_latest_entry[0] || {};
       //
 
       // insert entry into flowmeter table
@@ -229,6 +234,23 @@ try {
         await connection.query(flowmeter_query, flowmeter_query_data);
         logger.log(`Populated!`, success);
         flowmeter_insertion_count++;
+        // check whether today's flowmeter params same as yesterday's (show warning)
+        if (
+          ([2, 3, 4, 7].includes(platform_number) &&
+            (flowmeter_latest_reading2 == reading2 ||
+              flowmeter_latest_reading4 == reading4)) ||
+          ([8, 13].includes(platform_number) &&
+            (flowmeter_latest_reading1 == reading1,
+            flowmeter_latest_reading2 == reading2,
+            flowmeter_latest_reading3 == reading3,
+            flowmeter_latest_reading4 == reading4))
+        ) {
+          logger.log(
+            `Today's Flowmeter params are same as yesterday's!`,
+            warning
+          );
+        }
+        //
       } else {
         logger.log(`Already populated!`);
       }
@@ -460,6 +482,50 @@ try {
         }
         //
 
+        // check whether last_lab_date belongs to well_test
+        const well_tests_first_entry_query =
+          'SELECT * FROM well_tests WHERE well_id = ? ORDER BY well_test_date LIMIT 1';
+
+        const well_tests_first_entry_data = [well_id];
+
+        const [well_tests_first_entry] = await connection.query(
+          well_tests_first_entry_query,
+          well_tests_first_entry_data
+        );
+
+        const { well_test_date: well_tests_first_report_date } =
+          well_tests_first_entry[0] || {};
+
+        if (well_tests_first_report_date) {
+          const lab_result_exists_query =
+            'SELECT COUNT(*) AS well_tests_count FROM well_tests WHERE well_id = ? AND (well_test_date = ? OR ? = ? OR ? < ?)';
+
+          const lab_result_exists_query_data = [
+            well_id,
+            last_lab_date,
+            last_well_test_date,
+            last_lab_date,
+            last_lab_date,
+            well_tests_first_report_date,
+          ];
+
+          const [lab_result_exists] = await connection.query(
+            lab_result_exists_query,
+            lab_result_exists_query_data
+          );
+
+          const { well_tests_count } = lab_result_exists[0] || {};
+
+          if (!Number(well_tests_count)) {
+            logger.log(
+              `last_lab_date does not belong to past well_tests`,
+              error
+            );
+            validation_error = true;
+          }
+        }
+        //
+
         // important, all errors rejects here
         if (validation_error) {
           logger.log(`Data is not persisted into DB!`, warning);
@@ -679,7 +745,7 @@ try {
 
         // insert entry into daily_well_parameters table
         const daily_well_parameters_insert_query =
-          'INSERT INTO daily_well_parameters (well_id, report_date, flowmeter, well_uptime_hours, choke, pqa, phf, pba, p6x9, p9x13, p13x20, liquid_ton, total_gas, gaslift_gas, water_cut, mechanical_impurities, oil_density, oil_loss_ton) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+          'INSERT INTO daily_well_parameters (well_id, report_date, flowmeter, well_uptime_hours, choke, pqa, phf, pba, p6x9, p9x13, p13x20, liquid_ton, total_gas, gaslift_gas, reported_water_cut, water_cut, mechanical_impurities, oil_density, oil_loss_ton) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
 
         const daily_well_parameters_insert_query_data = [
           well_id,
@@ -696,6 +762,7 @@ try {
           (liquid_ton / 24) * well_uptime_hours,
           total_gas,
           gaslift_gas_day,
+          water_cut,
           water_cut,
           mechanical_impurities,
           oil_density,
@@ -737,7 +804,7 @@ try {
 
         // insert entry into well_tests table
         const well_tests_insert_query =
-          'INSERT INTO well_tests (well_id, well_test_date, choke, pqa, phf, pba, p6x9, p9x13, p13x20, liquid_ton, total_gas, gaslift_gas, water_cut, mechanical_impurities, oil_density) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+          'INSERT INTO well_tests (well_id, well_test_date, choke, pqa, phf, pba, p6x9, p9x13, p13x20, liquid_ton, total_gas, gaslift_gas, reported_water_cut, water_cut, mechanical_impurities, oil_density) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
 
         const well_tests_insert_query_data = [
           well_id,
@@ -752,6 +819,7 @@ try {
           liquid_ton,
           total_gas,
           gaslift_gas_wt,
+          water_cut,
           water_cut,
           mechanical_impurities,
           oil_density,
