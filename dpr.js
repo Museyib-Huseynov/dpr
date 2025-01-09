@@ -707,11 +707,10 @@ try {
           well_downtime_reasons_latest_comments != comments;
 
         if (
-          (!well_downtime_reasons_latest_report_date ||
-            (new Date(well_downtime_reasons_latest_report_date) <
-              new Date(report_date) &&
-              well_downtime_reasons_changed)) &&
-          well_uptime_hours !== 24
+          !well_downtime_reasons_latest_report_date ||
+          (new Date(well_downtime_reasons_latest_report_date) <
+            new Date(report_date) &&
+            well_downtime_reasons_changed)
         ) {
           await connection.query(
             well_downtime_reasons_query,
