@@ -4,6 +4,7 @@ import mysql from 'mysql2/promise';
 import officeCrypto from 'officecrypto-tool';
 import readXlsxFile from 'read-excel-file/node';
 import chalk from 'chalk';
+import { report } from 'process';
 
 const inputFolder = process.argv[2] || './';
 const password = 'gun123';
@@ -201,30 +202,30 @@ try {
 
       const flowmeter_previous_entry_query_data = [platform_id, report_date];
 
-      const [flowmeter_previous_entry] = await connection.query(
+      const [flowmeter_previous_entry_query_result] = await connection.query(
         flowmeter_previous_entry_query,
         flowmeter_previous_entry_query_data
       );
 
       const {
-        report_date: flowmeter_previous_report_date,
-        reading1: flowmeter_previous_reading1,
-        reading2: flowmeter_previous_reading2,
-        reading3: flowmeter_previous_reading3,
-        reading4: flowmeter_previous_reading4,
-      } = flowmeter_previous_entry[0] || {};
+        report_date: flowmeter_previous_entry_report_date,
+        reading1: flowmeter_previous_entry_reading1,
+        reading2: flowmeter_previous_entry_reading2,
+        reading3: flowmeter_previous_entry_reading3,
+        reading4: flowmeter_previous_entry_reading4,
+      } = flowmeter_previous_entry_query_result[0] || {};
 
       const flowmeter_previous_entry_is_yesterday = isYesterday(
         report_date,
-        flowmeter_previous_report_date
+        flowmeter_previous_entry_report_date
       );
       //
 
       // insert entry into flowmeter table
-      const flowmeter_query =
+      const flowmeter_insert_query =
         'INSERT INTO flowmeter (platform_id, report_date, reading1, reading2, reading3, reading4, calibration_date) VALUES (?, ?, ?, ?, ?, ?, ?)';
 
-      const flowmeter_query_data = [
+      const flowmeter_insert_query_data = [
         platform_id,
         report_date,
         reading1,
@@ -245,20 +246,23 @@ try {
         logger.log(`Check flowmeter parameters`, error);
         logger.log(`Not populated!`, warning);
       } else if (!Number(flowmeter_entry_exists)) {
-        await connection.query(flowmeter_query, flowmeter_query_data);
+        await connection.query(
+          flowmeter_insert_query,
+          flowmeter_insert_query_data
+        );
         logger.log(`Populated!`, success);
         flowmeter_insertion_count++;
         // check whether today's flowmeter params same as yesterday's (show warning)
         if (
           flowmeter_previous_entry_is_yesterday &&
           (([2, 3, 4, 7].includes(platform_number) &&
-            (flowmeter_previous_reading2 == reading2 ||
-              flowmeter_previous_reading4 == reading4)) ||
+            (flowmeter_previous_entry_reading2 == reading2 ||
+              flowmeter_previous_entry_reading4 == reading4)) ||
             ([8, 13].includes(platform_number) &&
-              (flowmeter_previous_reading1 == reading1,
-              flowmeter_previous_reading2 == reading2,
-              flowmeter_previous_reading3 == reading3,
-              flowmeter_previous_reading4 == reading4)))
+              (flowmeter_previous_entry_reading1 == reading1,
+              flowmeter_previous_entry_reading2 == reading2,
+              flowmeter_previous_entry_reading3 == reading3,
+              flowmeter_previous_entry_reading4 == reading4)))
         ) {
           logger.log(
             `Today's Flowmeter params are same as yesterday's!`,
@@ -501,17 +505,17 @@ try {
         const well_tests_first_entry_query =
           'SELECT * FROM well_tests WHERE well_id = ? ORDER BY well_test_date LIMIT 1';
 
-        const well_tests_first_entry_data = [well_id];
+        const well_tests_first_entry_query_data = [well_id];
 
-        const [well_tests_first_entry] = await connection.query(
+        const [well_tests_first_entry_query_result] = await connection.query(
           well_tests_first_entry_query,
-          well_tests_first_entry_data
+          well_tests_first_entry_query_data
         );
 
-        const { well_test_date: well_tests_first_report_date } =
-          well_tests_first_entry[0] || {};
+        const { well_test_date: well_tests_first_entry_report_date } =
+          well_tests_first_entry_query_result[0] || {};
 
-        if (well_tests_first_report_date) {
+        if (well_tests_first_entry_report_date) {
           const lab_result_exists_query =
             'SELECT COUNT(*) AS well_tests_count FROM well_tests WHERE well_id = ? AND (well_test_date = ? OR ? = ? OR ? < ?)';
 
@@ -521,15 +525,15 @@ try {
             last_well_test_date,
             last_lab_date,
             last_lab_date,
-            well_tests_first_report_date,
+            well_tests_first_entry_report_date,
           ];
 
-          const [lab_result_exists] = await connection.query(
+          const [lab_result_exists_query_result] = await connection.query(
             lab_result_exists_query,
             lab_result_exists_query_data
           );
 
-          const { well_tests_count } = lab_result_exists[0] || {};
+          const { well_tests_count } = lab_result_exists_query_result[0] || {};
 
           if (!Number(well_tests_count)) {
             logger.log(
@@ -570,32 +574,27 @@ try {
 
         const well_stock_previous_entry_query_data = [well_id, report_date];
 
-        const [well_stock_previous_entry] = await connection.query(
+        const [well_stock_previous_entry_query_result] = await connection.query(
           well_stock_previous_entry_query,
           well_stock_previous_entry_query_data
         );
 
         const {
-          report_date: well_stock_previous_report_date,
-          well_stock_category_id: well_stock_previous_well_stock_category_id,
+          well_stock_category_id:
+            well_stock_previous_entry_well_stock_category_id,
           well_stock_sub_category_id:
-            well_stock_previous_well_stock_sub_category_id,
+            well_stock_previous_entry_well_stock_sub_category_id,
           production_well_stock_sub_category_id:
-            well_stock_previous_production_well_stock_sub_category_id,
-          production_method_id: well_stock_previous_production_method_id,
-        } = well_stock_previous_entry[0] || {};
-
-        const well_stock_previous_entry_is_yesterday = isYesterday(
-          report_date,
-          well_stock_previous_report_date
-        );
+            well_stock_previous_entry_production_well_stock_sub_category_id,
+          production_method_id: well_stock_previous_entry_production_method_id,
+        } = well_stock_previous_entry_query_result[0] || {};
         //
 
         // insert entry into well_stock table
-        const well_stock_query =
+        const well_stock_insert_query =
           'INSERT INTO well_stock (well_id, report_date, well_stock_category_id, well_stock_sub_category_id, production_well_stock_sub_category_id, production_method_id) VALUES (?, ?, ?, ?, ?, ?)';
 
-        const well_stock_query_data = [
+        const well_stock_insert_query_data = [
           well_id,
           report_date,
           well_stock_category_id,
@@ -605,19 +604,20 @@ try {
         ];
 
         const well_stock_changed =
-          well_stock_previous_well_stock_category_id !=
+          well_stock_previous_entry_well_stock_category_id !=
             well_stock_category_id ||
-          well_stock_previous_well_stock_sub_category_id !=
+          well_stock_previous_entry_well_stock_sub_category_id !=
             well_stock_sub_category_id ||
-          well_stock_previous_production_well_stock_sub_category_id !=
+          well_stock_previous_entry_production_well_stock_sub_category_id !=
             production_well_stock_sub_category_id ||
-          well_stock_previous_production_method_id != production_method_id;
+          well_stock_previous_entry_production_method_id !=
+            production_method_id;
 
-        if (
-          !Number(well_stock_entry_exists) &&
-          (!well_stock_previous_entry_is_yesterday || well_stock_changed)
-        ) {
-          await connection.query(well_stock_query, well_stock_query_data);
+        if (!Number(well_stock_entry_exists) && well_stock_changed) {
+          await connection.query(
+            well_stock_insert_query,
+            well_stock_insert_query_data
+          );
           logger.log(`|'well_stock'| Populated!`, success);
           well_stock_insertion_count++;
         } else {
@@ -629,37 +629,51 @@ try {
         ////
 
         //// populate completion table
-        // get latest entry from completion table
-        const completion_latest_entry_query =
-          'SELECT * FROM completion WHERE well_id = ? ORDER BY id DESC LIMIT 1';
+        // check completion entry exists in DB
+        const completion_entry_exists_query =
+          'SELECT COUNT(*) AS completion_entry_exists FROM completion WHERE well_id = ? AND report_date = ?';
 
-        const completion_latest_entry_query_data = [well_id];
+        const completion_entry_exists_query_data = [well_id, report_date];
 
-        const [completion_latest_entry] = await connection.query(
-          completion_latest_entry_query,
-          completion_latest_entry_query_data
+        const [completion_entry_exists_query_result] = await connection.query(
+          completion_entry_exists_query,
+          completion_entry_exists_query_data
+        );
+
+        const { completion_entry_exists } =
+          completion_entry_exists_query_result[0] || {};
+        //
+
+        // get previous entry from completion table
+        const completion_previous_entry_query =
+          'SELECT * FROM completion WHERE well_id = ? AND report_date < ? ORDER BY report_date DESC LIMIT 1';
+
+        const completion_previous_entry_query_data = [well_id, report_date];
+
+        const [completion_previous_entry_query_result] = await connection.query(
+          completion_previous_entry_query,
+          completion_previous_entry_query_data
         );
 
         const {
-          report_date: completion_latest_report_date,
-          horizon_id: completion_latest_horizon_id,
-          casing: completion_latest_casing,
-          completion_interval: completion_latest_completion_interval,
-          tubing1_depth: completion_latest_tubing1_depth,
-          tubing1_length: completion_latest_tubing1_length,
-          tubing2_depth: completion_latest_tubing2_depth,
-          tubing2_length: completion_latest_tubing2_length,
-          tubing3_depth: completion_latest_tubing3_depth,
-          tubing3_length: completion_latest_tubing3_length,
-          packer_depth: completion_latest_packer_depth,
-        } = completion_latest_entry[0] || {};
+          horizon_id: completion_previous_entry_horizon_id,
+          casing: completion_previous_entry_casing,
+          completion_interval: completion_previous_entry_completion_interval,
+          tubing1_depth: completion_previous_entry_tubing1_depth,
+          tubing1_length: completion_previous_entry_tubing1_length,
+          tubing2_depth: completion_previous_entry_tubing2_depth,
+          tubing2_length: completion_previous_entry_tubing2_length,
+          tubing3_depth: completion_previous_entry_tubing3_depth,
+          tubing3_length: completion_previous_entry_tubing3_length,
+          packer_depth: completion_previous_entry_packer_depth,
+        } = completion_previous_entry_query_result[0] || {};
         //
 
         // insert entry into completion table
-        const completion_query =
+        const completion_insert_query =
           'INSERT INTO completion (well_id, report_date, horizon_id, casing, completion_interval, tubing1_depth, tubing1_length, tubing2_depth, tubing2_length, tubing3_depth, tubing3_length, packer_depth) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
 
-        const completion_query_data = [
+        const completion_insert_query_data = [
           well_id,
           report_date,
           horizon_id,
@@ -675,23 +689,23 @@ try {
         ];
 
         const completion_changed =
-          completion_latest_horizon_id != horizon_id ||
-          completion_latest_casing != casing ||
-          completion_latest_completion_interval != completion_interval ||
-          completion_latest_tubing1_depth != tubing1_depth ||
-          completion_latest_tubing1_length != tubing1_length ||
-          completion_latest_tubing2_depth != tubing2_depth ||
-          completion_latest_tubing2_length != tubing2_length ||
-          completion_latest_tubing3_depth != tubing3_depth ||
-          completion_latest_tubing3_length != tubing3_length ||
-          completion_latest_packer_depth != packer_depth;
+          completion_previous_entry_horizon_id != horizon_id ||
+          completion_previous_entry_casing != casing ||
+          completion_previous_entry_completion_interval !=
+            completion_interval ||
+          completion_previous_entry_tubing1_depth != tubing1_depth ||
+          completion_previous_entry_tubing1_length != tubing1_length ||
+          completion_previous_entry_tubing2_depth != tubing2_depth ||
+          completion_previous_entry_tubing2_length != tubing2_length ||
+          completion_previous_entry_tubing3_depth != tubing3_depth ||
+          completion_previous_entry_tubing3_length != tubing3_length ||
+          completion_previous_entry_packer_depth != packer_depth;
 
-        if (
-          !completion_latest_report_date ||
-          (new Date(completion_latest_report_date) < new Date(report_date) &&
-            completion_changed)
-        ) {
-          await connection.query(completion_query, completion_query_data);
+        if (!Number(completion_entry_exists) && completion_changed) {
+          await connection.query(
+            completion_insert_query,
+            completion_insert_query_data
+          );
           logger.log(`|'completion'| Populated!`, success);
           completion_insertion_count++;
         } else {
@@ -703,31 +717,53 @@ try {
         ////
 
         //// populate well_downtime_reasons table
-        // get latest entry from well_downtime_reasons table
-        const well_downtime_reasons_latest_entry_query =
-          'SELECT * FROM well_downtime_reasons WHERE well_id = ? ORDER BY id DESC LIMIT 1';
+        // check well_downtime_reasons entry exists in DB
+        const well_downtime_reasons_entry_exists_query =
+          'SELECT COUNT(*) AS well_downtime_reasons_entry_exists FROM well_downtime_reasons WHERE well_id = ? AND report_date = ?';
 
-        const well_downtime_reasons_latest_entry_query_data = [well_id];
+        const well_downtime_reasons_entry_exists_query_data = [
+          well_id,
+          report_date,
+        ];
 
-        const [well_downtime_reasons_latest_entry] = await connection.query(
-          well_downtime_reasons_latest_entry_query,
-          well_downtime_reasons_latest_entry_query_data
-        );
+        const [well_downtime_reasons_entry_exists_query_result] =
+          await connection.query(
+            well_downtime_reasons_entry_exists_query,
+            well_downtime_reasons_entry_exists_query_data
+          );
+
+        const { well_downtime_reasons_entry_exists } =
+          well_downtime_reasons_entry_exists_query_result[0] || {};
+        //
+
+        // get previous entry from well_downtime_reasons table
+        const well_downtime_reasons_previous_entry_query =
+          'SELECT * FROM well_downtime_reasons WHERE well_id = ? AND report_date < ? ORDER BY report_date DESC LIMIT 1';
+
+        const well_downtime_reasons_previous_entry_query_data = [
+          well_id,
+          report_date,
+        ];
+
+        const [well_downtime_reasons_previous_entry_query_result] =
+          await connection.query(
+            well_downtime_reasons_previous_entry_query,
+            well_downtime_reasons_previous_entry_query_data
+          );
 
         const {
-          report_date: well_downtime_reasons_latest_report_date,
-          downtime_category: well_downtime_reasons_latest_downtime_category,
+          downtime_category: well_downtime_reasons_previous_downtime_category,
           production_sub_skins_activity_id:
-            well_downtime_reasons_latest_production_sub_skins_activity_id,
-          comments: well_downtime_reasons_latest_comments,
-        } = well_downtime_reasons_latest_entry[0] || {};
+            well_downtime_reasons_previous_production_sub_skins_activity_id,
+          comments: well_downtime_reasons_previous_comments,
+        } = well_downtime_reasons_previous_entry_query_result[0] || {};
         //
 
         // insert entry into well_downtime_reasons table
-        const well_downtime_reasons_query =
+        const well_downtime_reasons_insert_query =
           'INSERT INTO well_downtime_reasons (well_id, report_date, downtime_category, production_sub_skins_activity_id, comments) VALUES (?, ?, ?, ?, ?)';
 
-        const well_downtime_reasons_query_data = [
+        const well_downtime_reasons_insert_query_data = [
           well_id,
           report_date,
           downtime_category,
@@ -736,20 +772,19 @@ try {
         ];
 
         const well_downtime_reasons_changed =
-          well_downtime_reasons_latest_downtime_category != downtime_category ||
-          well_downtime_reasons_latest_production_sub_skins_activity_id !=
+          well_downtime_reasons_previous_downtime_category !=
+            downtime_category ||
+          well_downtime_reasons_previous_production_sub_skins_activity_id !=
             production_sub_skins_activity_id ||
-          well_downtime_reasons_latest_comments != comments;
+          well_downtime_reasons_previous_comments != comments;
 
         if (
-          !well_downtime_reasons_latest_report_date ||
-          (new Date(well_downtime_reasons_latest_report_date) <
-            new Date(report_date) &&
-            well_downtime_reasons_changed)
+          !Number(well_downtime_reasons_entry_exists) &&
+          well_downtime_reasons_changed
         ) {
           await connection.query(
-            well_downtime_reasons_query,
-            well_downtime_reasons_query_data
+            well_downtime_reasons_insert_query,
+            well_downtime_reasons_insert_query_data
           );
           logger.log(`|'well_downtime_reasons'| Populated!`, success);
           well_downtime_reasons_insertion_count++;
@@ -762,19 +797,23 @@ try {
         ////
 
         //// populate daily_well_parameters table
-        // get latest entry from daily_well_parameters table
-        const daily_well_parameters_latest_entry_query =
-          'SELECT report_date FROM daily_well_parameters WHERE well_id = ? ORDER BY id DESC LIMIT 1';
+        // check daily_well_parameters entry exists in DB
+        const daily_well_parameters_entry_exists_query =
+          'SELECT COUNT(*) AS daily_well_parameters_entry_exists FROM daily_well_parameters WHERE well_id = ? AND report_date = ?';
 
-        const daily_well_parameters_latest_entry_query_data = [well_id];
+        const daily_well_parameters_entry_exists_query_data = [
+          well_id,
+          report_date,
+        ];
 
-        const [daily_well_parameters_latest_entry] = await connection.query(
-          daily_well_parameters_latest_entry_query,
-          daily_well_parameters_latest_entry_query_data
-        );
+        const [daily_well_parameters_entry_exists_query_result] =
+          await connection.query(
+            daily_well_parameters_entry_exists_query,
+            daily_well_parameters_entry_exists_query_data
+          );
 
-        const { report_date: daily_well_parameters_latest_report_date } =
-          daily_well_parameters_latest_entry[0] || {};
+        const { daily_well_parameters_entry_exists } =
+          daily_well_parameters_entry_exists_query_result[0] || {};
         //
 
         // insert entry into daily_well_parameters table
@@ -803,11 +842,7 @@ try {
           (liquid_ton / 24) * (1 - water_cut / 100) * (24 - well_uptime_hours),
         ];
 
-        if (
-          !daily_well_parameters_latest_report_date ||
-          new Date(daily_well_parameters_latest_report_date) <
-            new Date(report_date)
-        ) {
+        if (!Number(daily_well_parameters_entry_exists)) {
           await connection.query(
             daily_well_parameters_insert_query,
             daily_well_parameters_insert_query_data
@@ -821,19 +856,22 @@ try {
         ////
 
         //// populate well_tests table
-        // get latest entry from well_tests table
-        const well_tests_latest_entry_query =
-          'SELECT well_test_date FROM well_tests WHERE well_id = ? ORDER BY id DESC LIMIT 1';
+        // check well_tests entry exists in DB
+        const well_tests_entry_exists_query =
+          'SELECT COUNT(*) AS well_tests_entry_exists FROM well_tests WHERE well_id = ? AND well_test_date = ?';
 
-        const well_tests_latest_entry_query_data = [well_id];
+        const well_tests_entry_exists_query_data = [
+          well_id,
+          last_well_test_date,
+        ];
 
-        const [well_tests_latest_entry] = await connection.query(
-          well_tests_latest_entry_query,
-          well_tests_latest_entry_query_data
+        const [well_tests_entry_exists_query_result] = await connection.query(
+          well_tests_entry_exists_query,
+          well_tests_entry_exists_query_data
         );
 
-        const { well_test_date: well_tests_latest_well_test_date } =
-          well_tests_latest_entry[0] || {};
+        const { well_tests_entry_exists } =
+          well_tests_entry_exists_query_result[0] || {};
         //
 
         // insert entry into well_tests table
@@ -859,11 +897,7 @@ try {
           oil_density,
         ];
 
-        if (
-          !well_tests_latest_well_test_date ||
-          new Date(well_tests_latest_well_test_date) <
-            new Date(last_well_test_date)
-        ) {
+        if (!Number(well_tests_entry_exists)) {
           await connection.query(
             well_tests_insert_query,
             well_tests_insert_query_data
@@ -877,40 +911,40 @@ try {
         ////
 
         //// populate laboratory_results table
-        // get latest entry from laboratory_results table
-        const laboratory_results_latest_entry_query =
-          'SELECT last_lab_date FROM laboratory_results WHERE well_id = ? ORDER BY id DESC LIMIT 1';
+        // check laboratory_results entry exists in DB
+        const laboratory_results_entry_exists_query =
+          'SELECT COUNT(*) AS laboratory_results_entry_exists FROM laboratory_results WHERE well_id = ? AND last_lab_date = ?';
 
-        const laboratory_results_latest_entry_query_data = [well_id];
+        const laboratory_results_entry_exists_query_data = [
+          well_id,
+          last_lab_date,
+        ];
 
-        const [laboratory_results_latest_entry] = await connection.query(
-          laboratory_results_latest_entry_query,
-          laboratory_results_latest_entry_query_data
-        );
+        const [laboratory_results_entry_exists_query_result] =
+          await connection.query(
+            laboratory_results_entry_exists_query,
+            laboratory_results_entry_exists_query_data
+          );
 
-        const { last_lab_date: laboratory_results_latest_last_lab_date } =
-          laboratory_results_latest_entry[0] || {};
+        const { laboratory_results_entry_exists } =
+          laboratory_results_entry_exists_query_result[0] || {};
         //
 
         // insert entry into laboratory_results table
-        const laboratory_results_query =
+        const laboratory_results_insert_query =
           'INSERT INTO laboratory_results (well_id, last_lab_date, water_cut, mechanical_impurities) VALUES (?, ?, ?, ?)';
 
-        const laboratory_results_query_data = [
+        const laboratory_results_insert_query_data = [
           well_id,
           last_lab_date,
           water_cut,
           mechanical_impurities,
         ];
 
-        if (
-          !laboratory_results_latest_last_lab_date ||
-          new Date(laboratory_results_latest_last_lab_date) <
-            new Date(last_lab_date)
-        ) {
+        if (!Number(laboratory_results_entry_exists)) {
           await connection.query(
-            laboratory_results_query,
-            laboratory_results_query_data
+            laboratory_results_insert_query,
+            laboratory_results_insert_query_data
           );
           logger.log(`|'laboratory_results'| Populated!`, success);
           laboratory_results_insertion_count++;
