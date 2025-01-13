@@ -4,6 +4,6 @@ set /p folder="Please enter the folder name: "
 if not "!folder!"=="" (
     set "folder=!folder:\=\\!"
 )
-node dpr.js "!folder!"
+node dpr_v2.js "!folder!"
 pause
 

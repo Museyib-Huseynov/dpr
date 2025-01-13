@@ -146,21 +146,15 @@ try {
       //
 
       // check if report is yesterday's report
-      // const today = new Date().toLocaleDateString('en-CA', {
-      //   timeZone: 'Asia/Baku',
-      // });
-      // const diffDays = (new Date(today) - new Date(report_date)) / 86400000;
-      // if (diffDays !== 1) {
-      //   logger.log(
-      //     `Report_date is not yesterday's`,
-      //     error
-      //   );
-      //   logger.log(
-      //     `Data is not persisted into DB!`,
-      //     warning
-      //   );
-      //   continue outer;
-      // }
+      const today = new Date().toLocaleDateString('en-CA', {
+        timeZone: 'Asia/Baku',
+      });
+      const diffDays = (new Date(today) - new Date(report_date)) / 86400000;
+      if (diffDays !== 1) {
+        logger.log(`Report_date is not yesterday's`, error);
+        logger.log(`Data is not persisted into DB!`, warning);
+        continue outer;
+      }
       //
 
       // parse flowmeter params
@@ -969,7 +963,7 @@ try {
 
         // check whether lab results of well tests are present
         const well_test_lab_result_exist_query =
-          'SELECT well_test_date FROM well_tests AS wt WHERE well_id = ? AND (SELECT COUNT(*) = 0 FROM laboratory_results AS lr WHERE well_id = ? AND (wt.well_test_date = lr.last_lab_date OR DATEDIFF(wt.well_test_date, lr.last_lab_date) = 1)) ORDER BY wt.well_test_date DESC LIMIT 10';
+          'SELECT well_test_date FROM well_tests AS wt WHERE well_id = ? AND (SELECT COUNT(*) = 0 FROM laboratory_results AS lr WHERE well_id = ? AND (wt.well_test_date = lr.last_lab_date OR DATEDIFF(wt.well_test_date, lr.last_lab_date) = 1)) AND DATEDIFF(CURDATE(), wt.well_test_date) >= 7 ORDER BY wt.well_test_date DESC LIMIT 10';
 
         const well_test_lab_result_exist_query_data = [well_id, well_id];
 
