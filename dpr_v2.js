@@ -146,15 +146,15 @@ try {
       //
 
       // check if report is yesterday's report
-      const today = new Date().toLocaleDateString('en-CA', {
-        timeZone: 'Asia/Baku',
-      });
-      const diffDays = (new Date(today) - new Date(report_date)) / 86400000;
-      if (diffDays !== 1) {
-        logger.log(`Report_date is not yesterday's`, error);
-        logger.log(`Data is not persisted into DB!`, warning);
-        continue outer;
-      }
+      // const today = new Date().toLocaleDateString('en-CA', {
+      //   timeZone: 'Asia/Baku',
+      // });
+      // const diffDays = (new Date(today) - new Date(report_date)) / 86400000;
+      // if (diffDays !== 1) {
+      //   logger.log(`Report_date is not yesterday's`, error);
+      //   logger.log(`Data is not persisted into DB!`, warning);
+      //   continue outer;
+      // }
       //
 
       // parse flowmeter params
@@ -511,7 +511,7 @@ try {
 
         if (well_tests_first_entry_report_date) {
           const lab_result_exists_query =
-            'SELECT COUNT(*) AS well_tests_count FROM well_tests WHERE well_id = ? AND (well_test_date = ? OR ? = ? OR ? < ?)';
+            'SELECT COUNT(*) AS well_tests_count FROM well_tests WHERE well_id = ? AND (well_test_date = ? OR (DATEDIFF(?, ?) BETWEEN 0 AND 1) OR ? < ?)';
 
           const lab_result_exists_query_data = [
             well_id,
@@ -962,23 +962,28 @@ try {
         //
 
         // check whether lab results of well tests are present
-        const well_test_lab_result_exist_query =
-          'SELECT well_test_date FROM well_tests AS wt WHERE well_id = ? AND (SELECT COUNT(*) = 0 FROM laboratory_results AS lr WHERE well_id = ? AND (wt.well_test_date = lr.last_lab_date OR DATEDIFF(wt.well_test_date, lr.last_lab_date) = 1)) AND DATEDIFF(CURDATE(), wt.well_test_date) >= 7 ORDER BY wt.well_test_date DESC LIMIT 10';
+        const well_test_lab_result_not_exist_query =
+          'SELECT well_test_date FROM well_tests AS wt ' +
+          'WHERE well_id = ? ' +
+          'AND (SELECT COUNT(*) = 0 FROM laboratory_results AS lr WHERE well_id = ? AND (DATEDIFF(wt.well_test_date, lr.last_lab_date) BETWEEN 0 AND 1)) ' +
+          'AND DATEDIFF(CURDATE(), wt.well_test_date) >= 7 ' +
+          'ORDER BY wt.well_test_date DESC ' +
+          'LIMIT 10';
 
-        const well_test_lab_result_exist_query_data = [well_id, well_id];
+        const well_test_lab_result_not_exist_query_data = [well_id, well_id];
 
-        const [well_test_lab_result_exist_list] = await connection.query(
-          well_test_lab_result_exist_query,
-          well_test_lab_result_exist_query_data
+        const [well_test_lab_result_not_exist_list] = await connection.query(
+          well_test_lab_result_not_exist_query,
+          well_test_lab_result_not_exist_query_data
         );
 
-        if (well_test_lab_result_exist_list.length > 0) {
-          const well_test_lab_result_exist_string =
-            well_test_lab_result_exist_list
+        if (well_test_lab_result_not_exist_list.length > 0) {
+          const well_test_lab_result_not_exist_string =
+            well_test_lab_result_not_exist_list
               .map((i) => i.well_test_date)
               .join(', ');
           logger.log(
-            `Lab results of these well tests do not exist: ${well_test_lab_result_exist_string}`,
+            `Lab results of these well tests do not exist: ${well_test_lab_result_not_exist_string}`,
             warning
           );
         }
