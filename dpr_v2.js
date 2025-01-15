@@ -115,6 +115,7 @@ try {
 
       const input = await fs.readFile(filePath);
       const output = await officeCrypto.decrypt(input, { password });
+      await fs.writeFile(filePath, output);
       const rows = await readXlsxFile(output, { sheet: 'Hesabat forması' });
 
       // parse platform_id
