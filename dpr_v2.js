@@ -949,17 +949,31 @@ try {
         //
         ////
 
-        // check whether last_lab_date is obsolete
+        // check whether well_test_date or last_lab_date is older than 15 days in producing wells
         if (
-          (new Date(report_date) - new Date(last_well_test_date)) / 86400000 >=
-            7 &&
-          last_well_test_date != last_lab_date
+          (production_well_stock_sub_category_id == 1 &&
+            (new Date(report_date) - new Date(last_well_test_date)) / 86400000 >
+              15) ||
+          (new Date(report_date) - new Date(last_lab_date)) / 86400000 > 15
         ) {
           logger.log(
-            `Update lab results! Well test result should be available!`,
+            `Well test or lab results are too old for producing well`,
             warning
           );
         }
+        //
+
+        // check whether last_lab_date is obsolete
+        // if (
+        //   (new Date(report_date) - new Date(last_well_test_date)) / 86400000 >=
+        //     7 &&
+        //   last_well_test_date != last_lab_date
+        // ) {
+        //   logger.log(
+        //     `Update lab results! Well test result should be available!`,
+        //     warning
+        //   );
+        // }
         //
 
         // check whether lab results of well tests are present
