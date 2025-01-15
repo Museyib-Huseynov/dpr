@@ -951,10 +951,10 @@ try {
 
         // check whether well_test_date or last_lab_date is older than 15 days in producing wells
         if (
-          (production_well_stock_sub_category_id == 1 &&
-            (new Date(report_date) - new Date(last_well_test_date)) / 86400000 >
-              15) ||
-          (new Date(report_date) - new Date(last_lab_date)) / 86400000 > 15
+          production_well_stock_sub_category_id == 1 &&
+          ((new Date(report_date) - new Date(last_well_test_date)) / 86400000 >
+            15 ||
+            (new Date(report_date) - new Date(last_lab_date)) / 86400000 > 15)
         ) {
           logger.log(
             `Well test or lab results are too old for producing well`,
