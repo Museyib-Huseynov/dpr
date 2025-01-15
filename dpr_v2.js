@@ -233,9 +233,10 @@ try {
         logger.log(`Flowmeter is not present`);
         logger.log(`Not populated!`);
       } else if (
-        !reading2 ||
-        !reading4 ||
-        ([8, 13].includes(platform_number) && (!reading1 || !reading3))
+        reading2 == null ||
+        reading4 == null ||
+        ([8, 13].includes(platform_number) &&
+          (reading1 == null || reading3 == null))
       ) {
         logger.log(`Check flowmeter parameters`, error);
         logger.log(`Not populated!`, warning);
@@ -496,47 +497,47 @@ try {
         //
 
         // check whether last_lab_date belongs to well_test
-        const well_tests_first_entry_query =
-          'SELECT * FROM well_tests WHERE well_id = ? ORDER BY well_test_date LIMIT 1';
+        // const well_tests_first_entry_query =
+        //   'SELECT * FROM well_tests WHERE well_id = ? ORDER BY well_test_date LIMIT 1';
 
-        const well_tests_first_entry_query_data = [well_id];
+        // const well_tests_first_entry_query_data = [well_id];
 
-        const [well_tests_first_entry_query_result] = await connection.query(
-          well_tests_first_entry_query,
-          well_tests_first_entry_query_data
-        );
+        // const [well_tests_first_entry_query_result] = await connection.query(
+        //   well_tests_first_entry_query,
+        //   well_tests_first_entry_query_data
+        // );
 
-        const { well_test_date: well_tests_first_entry_report_date } =
-          well_tests_first_entry_query_result[0] || {};
+        // const { well_test_date: well_tests_first_entry_report_date } =
+        //   well_tests_first_entry_query_result[0] || {};
 
-        if (well_tests_first_entry_report_date) {
-          const lab_result_exists_query =
-            'SELECT COUNT(*) AS well_tests_count FROM well_tests WHERE well_id = ? AND (well_test_date = ? OR (DATEDIFF(?, ?) BETWEEN 0 AND 1) OR ? < ?)';
+        // if (well_tests_first_entry_report_date) {
+        //   const lab_result_exists_query =
+        //     'SELECT COUNT(*) AS well_tests_count FROM well_tests WHERE well_id = ? AND (well_test_date = ? OR (DATEDIFF(?, ?) BETWEEN 0 AND 1) OR ? < ?)';
 
-          const lab_result_exists_query_data = [
-            well_id,
-            last_lab_date,
-            last_well_test_date,
-            last_lab_date,
-            last_lab_date,
-            well_tests_first_entry_report_date,
-          ];
+        //   const lab_result_exists_query_data = [
+        //     well_id,
+        //     last_lab_date,
+        //     last_well_test_date,
+        //     last_lab_date,
+        //     last_lab_date,
+        //     well_tests_first_entry_report_date,
+        //   ];
 
-          const [lab_result_exists_query_result] = await connection.query(
-            lab_result_exists_query,
-            lab_result_exists_query_data
-          );
+        //   const [lab_result_exists_query_result] = await connection.query(
+        //     lab_result_exists_query,
+        //     lab_result_exists_query_data
+        //   );
 
-          const { well_tests_count } = lab_result_exists_query_result[0] || {};
+        //   const { well_tests_count } = lab_result_exists_query_result[0] || {};
 
-          if (!Number(well_tests_count)) {
-            logger.log(
-              `last_lab_date does not belong to past well_tests`,
-              error
-            );
-            validation_error = true;
-          }
-        }
+        //   if (!Number(well_tests_count)) {
+        //     logger.log(
+        //       `last_lab_date does not belong to past well_tests`,
+        //       error
+        //     );
+        //     validation_error = true;
+        //   }
+        // }
         //
 
         // important, all errors rejects here
@@ -962,31 +963,31 @@ try {
         //
 
         // check whether lab results of well tests are present
-        const well_test_lab_result_not_exist_query =
-          'SELECT well_test_date FROM well_tests AS wt ' +
-          'WHERE well_id = ? ' +
-          'AND (SELECT COUNT(*) = 0 FROM laboratory_results AS lr WHERE well_id = ? AND (DATEDIFF(wt.well_test_date, lr.last_lab_date) BETWEEN 0 AND 1)) ' +
-          'AND DATEDIFF(CURDATE(), wt.well_test_date) >= 7 ' +
-          'ORDER BY wt.well_test_date DESC ' +
-          'LIMIT 10';
+        // const well_test_lab_result_not_exist_query =
+        //   'SELECT well_test_date FROM well_tests AS wt ' +
+        //   'WHERE well_id = ? ' +
+        //   'AND (SELECT COUNT(*) = 0 FROM laboratory_results AS lr WHERE well_id = ? AND (DATEDIFF(wt.well_test_date, lr.last_lab_date) BETWEEN 0 AND 1)) ' +
+        //   'AND DATEDIFF(CURDATE(), wt.well_test_date) >= 7 ' +
+        //   'ORDER BY wt.well_test_date DESC ' +
+        //   'LIMIT 10';
 
-        const well_test_lab_result_not_exist_query_data = [well_id, well_id];
+        // const well_test_lab_result_not_exist_query_data = [well_id, well_id];
 
-        const [well_test_lab_result_not_exist_list] = await connection.query(
-          well_test_lab_result_not_exist_query,
-          well_test_lab_result_not_exist_query_data
-        );
+        // const [well_test_lab_result_not_exist_list] = await connection.query(
+        //   well_test_lab_result_not_exist_query,
+        //   well_test_lab_result_not_exist_query_data
+        // );
 
-        if (well_test_lab_result_not_exist_list.length > 0) {
-          const well_test_lab_result_not_exist_string =
-            well_test_lab_result_not_exist_list
-              .map((i) => i.well_test_date)
-              .join(', ');
-          logger.log(
-            `Lab results of these well tests do not exist: ${well_test_lab_result_not_exist_string}`,
-            warning
-          );
-        }
+        // if (well_test_lab_result_not_exist_list.length > 0) {
+        //   const well_test_lab_result_not_exist_string =
+        //     well_test_lab_result_not_exist_list
+        //       .map((i) => i.well_test_date)
+        //       .join(', ');
+        //   logger.log(
+        //     `Lab results of these well tests do not exist: ${well_test_lab_result_not_exist_string}`,
+        //     warning
+        //   );
+        // }
         //
       }
       ////
