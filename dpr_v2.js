@@ -114,8 +114,14 @@ try {
       logger_without_timestamp = false;
 
       const input = await fs.readFile(filePath);
-      const output = await officeCrypto.decrypt(input, { password });
-      await fs.writeFile(filePath, output);
+      const isEncrypted = officeCrypto.isEncrypted(input);
+      let output;
+      if (isEncrypted) {
+        output = await officeCrypto.decrypt(input, { password });
+        await fs.writeFile(filePath, output);
+      } else {
+        output = input;
+      }
       const rows = await readXlsxFile(output, { sheet: 'Hesabat forması' });
 
       // parse platform_id
